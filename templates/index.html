@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Master</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        #text-container {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .word {
+            padding: 3px;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+        #typing-area {
+            width: 80%;
+            padding: 10px;
+            font-size: 18px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        #loading {
+            display: none;
+            font-size: 16px;
+            color: blue;
+        }
+        .length-options {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1><u>Typing Master</u></h1>
+    
+    <!-- Dropdown to select paragraph length -->
+    <div class="length-options">
+        <label for="length"><u>Choose paragraph length:</u></label>
+        <select id="length">
+            <option value="short">Short</option>
+            <option value="medium" selected>Medium</option>
+            <option value="long">Long</option>
+        </select>
+        <button onclick="fetchParagraph()">Generate Paragraph</button>
+    </div>
+    
+    <p id="loading">Loading paragraph...</p>
+    
+    <div id="text-container"></div>
+    
+    <input type="text" id="typing-area" placeholder="Start typing here..." autofocus>
+    
+    <div id="result"></div>
+
+    <script>
+        let words = [];
+        let startTime;
+        let typedWords = [];
+
+        async function fetchParagraph() {
+            // Show loading state
+            document.getElementById("loading").style.display = "block";
+            
+            // Get the selected paragraph length
+            const length = document.getElementById("length").value;
+
+            // Fetch the paragraph from Flask backend
+            const response = await fetch(`/generate?length=${length}`);
+            const data = await response.json();
+            
+            // Hide loading state and update the paragraph
+            document.getElementById("loading").style.display = "none";
+            words = data.paragraph.split(" ");
+            document.getElementById("text-container").innerHTML = words.map(word => `<span class='word'>${word}</span>`).join(" ");
+            document.getElementById("typing-area").value = "";
+            document.getElementById("result").innerHTML = "";
+            startTime = null;
+        }
+
+        document.getElementById("typing-area").addEventListener("input", function() {
+            if (!startTime) startTime = new Date();
+            typedWords = this.value.trim().split(" ");
+            let spans = document.querySelectorAll(".word");
+
+            spans.forEach((span, index) => {
+                if (typedWords[index] === undefined) {
+                    span.classList.remove("correct", "incorrect");
+                } else if (typedWords[index] === words[index]) {
+                    span.classList.add("correct");
+                    span.classList.remove("incorrect");
+                } else {
+                    span.classList.add("incorrect");
+                    span.classList.remove("correct");
+                }
+            });
+
+            if (typedWords.length === words.length && typedWords.join(" ") === words.join(" ")) {
+                let timeTaken = (new Date() - startTime) / 1000;
+                let wpm = Math.round((words.length / timeTaken) * 60);
+                document.getElementById("result").innerHTML = `Typing Speed: ${wpm} WPM`;
+            }
+        });
+    </script>
+</body>
+</html>
